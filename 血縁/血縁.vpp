@@ -1,0 +1,59 @@
+class 血縁
+types
+    public 文字列型 = seq of char;
+    public 日付型 = int;
+    public 性別型 = <男> | <女>;
+    public 人型 ::
+        名前 : 文字列型
+        誕生日 : 日付型
+        性 : 性別型
+        父親 : [人型]
+        母親 : [人型];
+functions
+    public 親 : 人型 -> set of 人型
+    親(x) == {x.父親, x.母親} \ {nil};
+
+    public 子 : set of 人型 * 人型 -> set of 人型
+    子(allp, x) == {c | c in set allp & 親子？(x, c)};
+
+    public 孫 : set of 人型 * 人型 -> set of 人型
+    孫(allp, x) == dunion {子(allp, c) | c in set 子(allp, x)};
+
+    public 曾孫 : set of 人型 * 人型 -> set of 人型
+    曾孫(allp, x) == dunion {子(allp, c) | c in set 孫(allp, x)};
+
+    public 全子孫 : set of 人型 * 人型 -> set of 人型
+    全子孫(allp, x) ==
+        let children = 子(allp, x) in
+            children union dunion {全子孫(allp, c) | c in set children};
+
+    public 男？ : 人型 -> bool
+    男？(x) == x.性 = <男>;
+
+    public 女？ : 人型 -> bool
+    女？(x) == x.性 = <女>;
+
+    -- `y`は`x`より年長か？
+    public 年長？ : 人型 * 人型 -> bool
+    年長？(x, y) == x.誕生日 < y.誕生日;
+
+    public 親子？ : 人型 * 人型 -> bool
+    親子？(p, c) == (p = c.父親) or (p = c.母親);
+
+    public 兄弟姉妹？ : 人型 * 人型 -> bool
+    兄弟姉妹？(x, y) ==
+        x <> y and
+            exists p in set {x.父親, y.父親, x.母親, y.母親} & 親子？(p, x) and 親子？(p, y); -- x in set {...} & ...
+
+    public 伯父？ : 人型 * 人型 -> bool
+    伯父？(x, y) ==
+        let parents = 親(y) in
+            exists p in set parents & (年長？(x, p) and 男？(x) and 兄弟姉妹？(x, p));
+
+    public 叔父？ : 人型 * 人型 -> bool
+    叔父？(x, y) ==
+        let
+            parents = 親(y)
+        in
+            exists p in set parents & (年長？(p, x) and 男？(x) and 兄弟姉妹？(x, p));
+end 血縁
